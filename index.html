@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trắc Nghiệm Vật Lý: Trường Hấp Dẫn</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=STIX+Two+Math&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at top right, #eef2ff 0%, #f8fafc 45%, #f3e8ff 100%);
+      min-height: 100vh;
+    }
+
+    /* Định dạng công thức Vật lý và phân số */
+    .math-var {
+      font-family: 'STIX Two Math', 'Times New Roman', serif;
+      font-style: italic;
+      font-weight: 600;
+    }
+    .math-roman {
+      font-family: 'STIX Two Math', 'Times New Roman', serif;
+      font-style: normal;
+      font-weight: 600;
+    }
+    .math-frac {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      vertical-align: middle;
+      margin: 0 0.25rem;
+      font-family: 'STIX Two Math', 'Times New Roman', serif;
+      line-height: 1.1;
+    }
+    .math-frac > .num {
+      border-bottom: 1.5px solid currentColor;
+      padding: 0 0.3rem 0.1rem;
+      width: 100%;
+      text-align: center;
+    }
+    .math-frac > .den {
+      padding: 0.1rem 0.3rem 0;
+      width: 100%;
+      text-align: center;
+    }
+
+    /* Hiệu ứng trượt mượt mà cho khung giải thích */
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .animate-explanation {
+      animation: slideDown 0.28s ease-out forwards;
+    }
+
+    /* Hiệu ứng rung nhẹ khi chọn sai */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      50% { transform: translateX(5px); }
+      75% { transform: translateX(-4px); }
+    }
+    .animate-shake {
+      animation: shake 0.3s ease-in-out;
+    }
+  </style>
+</head>
+<body class="text-slate-800 pb-16">
+
+  <!-- HEADER KHOA HỌC VŨ TRỤ -->
+  <header class="bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 text-white shadow-lg sticky top-0 z-30">
+    <div class="max-w-3xl mx-auto px-4 py-3.5">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <!-- Tiêu đề -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300 shadow-inner">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <circle cx="12" cy="12" r="3" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 2a10 10 0 1010 10A10 10 0 0012 2zm0 0c2.5 3 4 6.5 4 10s-1.5 7-4 10m0-20c-2.5 3-4 6.5-4 10s1.5 7 4 10" />
+            </svg>
+          </div>
+          <div>
+            <span class="text-[11px] uppercase tracking-wider font-semibold text-indigo-300 block">Chuyên đề Vật lý</span>
+            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white">Trường Hấp Dẫn</h1>
+          </div>
+        </div>
+
+        <!-- Bộ đếm thời gian & Điểm trực tiếp -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          <!-- Số câu đã giải đúng -->
+          <div class="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-400/30 px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold text-emerald-200">
+            <span>Hoàn thành:</span>
+            <span id="live-score" class="text-white font-bold">0/6</span>
+          </div>
+
+          <!-- Đồng hồ -->
+          <div class="flex items-center gap-1.5 bg-white/10 border border-white/15 px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium text-indigo-100">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span id="timer-display" class="font-mono font-semibold">00:00</span>
+          </div>
+
+          <!-- Chuyển đổi chế độ hiển thị -->
+          <div class="bg-slate-800/90 p-1 rounded-xl border border-slate-700 flex text-xs font-medium">
+            <button id="mode-single-btn" onclick="setViewMode('single')" class="px-2.5 py-1 rounded-lg transition-all bg-indigo-600 text-white shadow">
+              Từng câu
+            </button>
+            <button id="mode-all-btn" onclick="setViewMode('all')" class="px-2.5 py-1 rounded-lg transition-all text-slate-300 hover:text-white">
+              Tất cả
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- THANH TIẾN TRÌNH (PROGRESS BAR) -->
+      <div class="mt-3 pt-2 border-t border-white/10">
+        <div class="flex justify-between items-center text-xs text-indigo-200 mb-1.5">
+          <span id="progress-text">Tiến độ: Đã giải đúng 0/6 câu</span>
+          <span id="progress-percent" class="font-semibold text-indigo-300">0%</span>
+        </div>
+        <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+          <div id="progress-bar" class="h-full bg-gradient-to-r from-indigo-400 via-purple-400 to-emerald-400 transition-all duration-300 ease-out" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- NỘI DUNG CHÍNH -->
+  <main class="max-w-3xl mx-auto px-4 mt-6">
+
+    <!-- BẢNG CHỌN NHANH CÂU HỎI (1 -> 6) -->
+    <div class="bg-white/90 backdrop-blur rounded-2xl p-3.5 shadow-sm border border-indigo-100 mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2 flex-wrap" id="question-nav-pills">
+        <!-- Các nút số câu hỏi sẽ được render bằng JS -->
+      </div>
+      <div class="flex items-center gap-3 text-xs text-slate-500">
+        <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Đã đúng</span>
+        <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Đang thử lại</span>
+        <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-200"></span> Chưa làm</span>
+      </div>
+    </div>
+
+    <!-- KHUNG TỔNG KẾT ĐIỂM (Hiện khi nhấn Nộp bài hoặc hoàn thành cả 6 câu) -->
+    <div id="result-banner" class="hidden mb-6 bg-white rounded-3xl p-6 sm:p-8 shadow-xl border-2 border-indigo-100 text-center relative overflow-hidden">
+      <div class="absolute -top-12 -right-12 w-36 h-36 bg-indigo-50 rounded-full pointer-events-none"></div>
+      <div class="absolute -bottom-12 -left-12 w-36 h-36 bg-purple-50 rounded-full pointer-events-none"></div>
+
+      <div class="relative z-10">
+        <div class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-indigo-100 text-indigo-700 mb-3">
+          Hoàn thành bài trắc nghiệm
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-1">
+          Kết quả: <span id="final-score-text" class="text-indigo-600">6/6</span> câu hoàn thành
+        </h2>
+        <p id="final-message" class="text-slate-600 text-sm sm:text-base mb-5">
+          Hãy xem lại chi tiết các câu trả lời và giải thích bên dưới.
+        </p>
+
+        <div class="grid grid-cols-3 gap-3 max-w-md mx-auto mb-6">
+          <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-3">
+            <div class="text-xs text-emerald-700 font-medium">Đúng ngay lần 1</div>
+            <div id="stat-first-try" class="text-xl font-extrabold text-emerald-600">0/6</div>
+          </div>
+          <div class="bg-rose-50 border border-rose-100 rounded-2xl p-3">
+            <div class="text-xs text-rose-700 font-medium">Số lượt chọn sai</div>
+            <div id="stat-wrong-attempts" class="text-xl font-extrabold text-rose-600">0</div>
+          </div>
+          <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-3">
+            <div class="text-xs text-indigo-700 font-medium">Thời gian</div>
+            <div id="stat-time" class="text-xl font-extrabold text-indigo-600 font-mono">00:00</div>
+          </div>
+        </div>
+
+        <button onclick="resetQuiz()" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white font-semibold shadow-md shadow-indigo-200 transition-all">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Làm lại bài từ đầu
+        </button>
+      </div>
+    </div>
+
+    <!-- DANH SÁCH THẺ CÂU HỎI -->
+    <div id="questions-container" class="space-y-6">
+      <!-- Câu hỏi sẽ được render tự động tại đây -->
+    </div>
+
+    <!-- THANH ĐIỀU HƯỚNG DƯỚI CÙNG -->
+    <div class="mt-6 flex flex-wrap items-center justify-between gap-3 bg-white rounded-2xl p-4 shadow-sm border border-indigo-100">
+      <!-- Nút Câu trước / Câu tiếp theo (chỉ hiện ở chế độ Từng câu) -->
+      <div id="single-nav-controls" class="flex items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-start">
+        <button id="prev-btn" onclick="prevQuestion()" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm transition disabled:opacity-40 disabled:pointer-events-none">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Câu trước
+        </button>
+
+        <button id="next-btn" onclick="nextQuestion()" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-semibold text-sm transition disabled:opacity-40 disabled:pointer-events-none">
+          Câu tiếp theo
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Nút Làm lại & Nộp bài -->
+      <div class="flex items-center gap-2.5 w-full sm:w-auto justify-end ml-auto">
+        <button onclick="resetQuiz()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium text-sm transition">
+          Làm lại bài
+        </button>
+        <button id="submit-btn" onclick="submitQuiz()" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold text-sm shadow-md shadow-indigo-200 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Nộp bài & Xem đáp án
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- JAVASCRIPT XỬ LÝ LOGIC -->
+  <script>
+    // Dữ liệu 6 câu hỏi chủ đề Trường hấp dẫn
+    const quizData = [
+      {
+        id: 1,
+        question: `Khái niệm <strong>"cường độ trường hấp dẫn"</strong> tại một điểm đặt vật có khối lượng <span class="math-var">m</span> được xác định bằng đại lượng nào sau đây?`,
+        options: [
+          `Độ lớn lực hấp dẫn tác dụng lên vật đó.`,
+          `Thương số giữa độ lớn lực hấp dẫn tác dụng lên vật và khối lượng <span class="math-var">m</span> của vật đó.`,
+          `Tích của lực hấp dẫn và khối lượng <span class="math-var">m</span> của vật.`,
+          `Gia tốc trọng trường nhân với khối lượng <span class="math-var">m</span>.`
+        ],
+        correct: 1, // B
+        explanation: `Theo định nghĩa, cường độ trường hấp dẫn tại một điểm đặc trưng cho trường hấp dẫn về phương diện tác dụng lực tại điểm đó và được xác định bằng thương số giữa lực hấp dẫn <span class="math-var">F</span><sub>hd</sub> tác dụng lên một vật thử có khối lượng <span class="math-var">m</span> đặt tại điểm đó và khối lượng <span class="math-var">m</span> của vật:
+        <span class="math-var">g</span> = <span class="math-frac"><span class="num"><span class="math-var">F</span><sub>hd</sub></span><span class="den"><span class="math-var">m</span></span></span>.`
+      },
+      {
+        id: 2,
+        question: `Công thức tính độ lớn của cường độ trường hấp dẫn <span class="math-var">g</span> do vật có khối lượng <span class="math-var">M</span> gây ra tại điểm cách tâm vật một khoảng <span class="math-var">r</span> là gì?`,
+        options: [
+          `<span class="math-var">g</span> = <span class="math-frac"><span class="num"><span class="math-var">GM</span></span><span class="den"><span class="math-var">r</span></span></span>`,
+          `<span class="math-var">g</span> = <span class="math-frac"><span class="num"><span class="math-var">GM</span></span><span class="den"><span class="math-var">r</span><sup>2</sup></span></span>`,
+          `<span class="math-var">g</span> = <span class="math-frac"><span class="num"><span class="math-var">GM</span><sup>2</sup></span><span class="den"><span class="math-var">r</span><sup>2</sup></span></span>`,
+          `<span class="math-var">g</span> = <span class="math-frac"><span class="num"><span class="math-var">G</span> &middot; <span class="math-var">m</span> &middot; <span class="math-var">M</span></span><span class="den"><span class="math-var">r</span><sup>2</sup></span></span>`
+        ],
+        correct: 1, // B
+        explanation: `Từ định luật vạn vật hấp dẫn <span class="math-var">F</span><sub>hd</sub> = <span class="math-frac"><span class="num"><span class="math-var">G</span> &middot; <span class="math-var">m</span> &middot; <span class="math-var">M</span></span><span class="den"><span class="math-var">r</span><sup>2</sup></span></span>, ta suy ra độ lớn cường độ trường hấp dẫn tại điểm cách tâm vật khoảng <span class="math-var">r</span> là:
+        <span class="math-var">g</span> = <span class="math-frac"><span class="num"><span class="math-var">F</span><sub>hd</sub></span><span class="den"><span class="math-var">m</span></span></span> = <span class="math-frac"><span class="num"><span class="math-var">GM</span></span><span class="den"><span class="math-var">r</span><sup>2</sup></span></span> (không phụ thuộc vào khối lượng thử <span class="math-var">m</span>).`
+      },
+      {
+        id: 3,
+        question: `Đối với các vật có hình cầu đồng chất (hoặc phân bố khối lượng đối xứng cầu), khi xét trường hấp dẫn ở một điểm bên ngoài quả cầu, ta có thể xem khối lượng của quả cầu như tập trung ở đâu?`,
+        options: [
+          `Ở bề mặt của quả cầu.`,
+          `Phân bố đều trên vỏ cầu.`,
+          `Tập trung ở tâm của nó.`,
+          `Phụ thuộc vào bán kính quả cầu.`
+        ],
+        correct: 2, // C
+        explanation: `Theo định lý vỏ cầu của Newton, đối với các vật hình cầu đồng chất hoặc có khối lượng phân bố đối xứng cầu, trường hấp dẫn tại mọi điểm bên ngoài quả cầu hoàn toàn giống như trường hấp dẫn gây bởi một chất điểm có cùng khối lượng đặt tại <strong>tâm của quả cầu</strong>.`
+      },
+      {
+        id: 4,
+        question: `Càng ra xa tâm Trái Đất (đối với các điểm ở bên ngoài bề mặt Trái Đất), độ lớn cường độ trường hấp dẫn sẽ thay đổi thế nào?`,
+        options: [
+          `Tăng lên tỉ lệ thuận với khoảng cách.`,
+          `Không đổi.`,
+          `Giảm dần (tỉ lệ nghịch với bình phương khoảng cách tới tâm).`,
+          `Giảm dần tỉ lệ thuận với khoảng cách.`
+        ],
+        correct: 2, // C
+        explanation: `Do <span class="math-var">g</span> = <span class="math-frac"><span class="num"><span class="math-var">GM</span></span><span class="den"><span class="math-var">r</span><sup>2</sup></span></span> với <span class="math-var">G</span> và <span class="math-var">M</span> là hằng số, nên khi khoảng cách <span class="math-var">r</span> tới tâm Trái Đất tăng lên thì độ lớn cường độ trường hấp dẫn <span class="math-var">g</span> sẽ <strong>giảm dần tỉ lệ nghịch với bình phương khoảng cách <span class="math-var">r</span></strong>.`
+      },
+      {
+        id: 5,
+        question: `Đường sức trường hấp dẫn của vật hình cầu đồng chất có đặc điểm hình học như thế nào?`,
+        options: [
+          `Là những đường cong khép kín quanh quả cầu.`,
+          `Là những đường thẳng song song với nhau.`,
+          `Là những đường thẳng từ vô cùng hướng vào tâm của vật hình cầu.`,
+          `Là những đường tròn đồng tâm.`
+        ],
+        correct: 2, // C
+        explanation: `Vì lực hấp dẫn luôn là lực hút hướng về tâm của vật hình cầu đồng chất, nên biểu diễn hình học của trường hấp dẫn (các đường sức) là những <strong>đường thẳng xuất phát từ vô cùng và hướng thẳng vào tâm</strong> của quả cầu.`
+      },
+      {
+        id: 6,
+        question: `Trong hệ đo lường SI, đơn vị của cường độ trường hấp dẫn là gì?`,
+        options: [
+          `<span class="math-roman">N</span> (Newton)`,
+          `<span class="math-roman">m/s</span>`,
+          `<span class="math-roman">N/kg</span>`,
+          `<span class="math-roman">kg/m</span><sup>3</sup>`
+        ],
+        correct: 2, // C
+        explanation: `Từ công thức định nghĩa <span class="math-var">g</span> = <span class="math-frac"><span class="num"><span class="math-var">F</span><sub>hd</sub></span><span class="den"><span class="math-var">m</span></span></span>, với lực <span class="math-var">F</span><sub>hd</sub> đo bằng Newton (<span class="math-roman">N</span>) và khối lượng <span class="math-var">m</span> đo bằng kilôgam (<span class="math-roman">kg</span>), đơn vị của cường độ trường hấp dẫn trong hệ SI là <strong><span class="math-roman">N/kg</span></strong> (tương đương với đơn vị gia tốc <span class="math-roman">m/s</span><sup>2</sup>).`
+      }
+    ];
+
+    const optionLabels = ['A', 'B', 'C', 'D'];
+
+    // Lưu danh sách các phương án người dùng đã bấm thử cho từng câu
+    // Ví dụ: attemptHistory[0] = [0, 1] nghĩa là ở Câu 1 người dùng đã bấm A (sai) rồi bấm B (đúng)
+    let attemptHistory = quizData.map(() => []);
+    let lastWrongClicked = { qIndex: null, optIndex: null }; // Dùng để tạo hiệu ứng rung ở nút vừa chọn sai
+    let currentQuestionIndex = 0;
+    let viewMode = 'single'; // 'single' | 'all'
+    let isQuizFinished = false;
+    let secondsElapsed = 0;
+    let timerInterval = null;
+
+    // Kiểm tra xem câu hỏi qIndex đã được chọn trúng đáp án đúng chưa
+    function isQuestionSolved(qIndex) {
+      return attemptHistory[qIndex].includes(quizData[qIndex].correct);
+    }
+
+    // Khởi tạo bộ đếm thời gian
+    function startTimer() {
+      clearInterval(timerInterval);
+      secondsElapsed = 0;
+      updateTimerDisplay();
+      timerInterval = setInterval(() => {
+        if (!isQuizFinished) {
+          secondsElapsed++;
+          updateTimerDisplay();
+        }
+      }, 1000);
+    }
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60).toString().padStart(2, '0');
+      const s = (sec % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function updateTimerDisplay() {
+      document.getElementById('timer-display').textContent = formatTime(secondsElapsed);
+    }
+
+    // Cập nhật thanh tiến trình, điểm trực tiếp và nút số thứ tự câu
+    function updateHeaderAndNav() {
+      const solvedCount = quizData.reduce((acc, _, idx) => acc + (isQuestionSolved(idx) ? 1 : 0), 0);
+      const percent = Math.round((solvedCount / quizData.length) * 100);
+
+      document.getElementById('progress-text').textContent = `Tiến độ: Đã giải đúng ${solvedCount}/${quizData.length} câu`;
+      document.getElementById('progress-percent').textContent = `${percent}%`;
+      document.getElementById('progress-bar').style.width = `${percent}%`;
+      document.getElementById('live-score').textContent = `${solvedCount}/${quizData.length}`;
+
+      // Render các nút số câu hỏi 1 -> 6
+      const navContainer = document.getElementById('question-nav-pills');
+      navContainer.innerHTML = quizData.map((q, idx) => {
+        const attempts = attemptHistory[idx];
+        const solved = isQuestionSolved(idx);
+        const isCurrent = (viewMode === 'single' && idx === currentQuestionIndex);
+
+        let colorClass = 'bg-slate-100 text-slate-700 hover:bg-indigo-50 border-slate-200';
+        let statusSymbol = '';
+
+        if (solved) {
+          colorClass = 'bg-emerald-500 text-white border-emerald-600 shadow-sm shadow-emerald-200';
+          statusSymbol = ' ✓';
+        } else if (attempts.length > 0) {
+          colorClass = 'bg-amber-500 text-white border-amber-600 shadow-sm shadow-amber-200';
+          statusSymbol = ' ↻';
+        }
+
+        const ringClass = isCurrent ? 'ring-2 ring-offset-2 ring-indigo-600 font-bold' : '';
+
+        return `
+          <button
+            onclick="jumpToQuestion(${idx})"
+            class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${colorClass} ${ringClass}"
+            title="Đi tới Câu ${idx + 1}"
+          >
+            Câu ${idx + 1}${statusSymbol}
+          </button>
+        `;
+      }).join('');
+
+      // Cập nhật trạng thái nút Câu trước / Câu tiếp theo
+      const prevBtn = document.getElementById('prev-btn');
+      const nextBtn = document.getElementById('next-btn');
+      if (prevBtn && nextBtn) {
+        prevBtn.disabled = currentQuestionIndex === 0;
+        nextBtn.disabled = currentQuestionIndex === quizData.length - 1;
+      }
+    }
+
+    // Tạo HTML cho 1 thẻ câu hỏi
+    function renderQuestionCard(qIndex) {
+      const q = quizData[qIndex];
+      const attempts = attemptHistory[qIndex];
+      const solved = isQuestionSolved(qIndex);
+      const wrongAttemptsCount = attempts.filter(opt => opt !== q.correct).length;
+
+      // Badge trạng thái góc phải thẻ câu hỏi
+      let statusBadge = `
+        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
+          Chưa trả lời
+        </span>
+      `;
+      if (solved) {
+        statusBadge = `
+          <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            ${wrongAttemptsCount === 0 ? 'Đúng ngay lần đầu!' : `Đã giải đúng (sau ${wrongAttemptsCount + 1} lần chọn)`}
+          </span>
+        `;
+      } else if (wrongAttemptsCount > 0) {
+        statusBadge = `
+          <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+            Sai ${wrongAttemptsCount} lần - Hãy chọn tiếp!
+          </span>
+        `;
+      }
+
+      // Render 4 đáp án A, B, C, D
+      const optionsHtml = q.options.map((optText, optIdx) => {
+        const label = optionLabels[optIdx];
+        const hasClickedThisOption = attempts.includes(optIdx);
+        const isCorrectOption = (optIdx === q.correct);
+        const shouldShake = (lastWrongClicked.qIndex === qIndex && lastWrongClicked.optIndex === optIdx);
+
+        // Mặc định: Nút chưa bấm và câu hỏi vẫn đang mở để chọn tiếp
+        let btnStyle = 'bg-white hover:bg-indigo-50/70 hover:border-indigo-300 border-slate-200 text-slate-800 cursor-pointer';
+        let circleStyle = 'bg-indigo-50 text-indigo-700 border border-indigo-200 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600';
+        let feedbackTag = '';
+        let isDisabled = false;
+
+        if (hasClickedThisOption && isCorrectOption) {
+          // Người dùng đã bấm trúng đáp án ĐÚNG -> Tô màu Xanh lá
+          btnStyle = 'bg-emerald-50/90 border-emerald-500 text-emerald-950 ring-2 ring-emerald-500/20 cursor-default';
+          circleStyle = 'bg-emerald-500 text-white border-emerald-600';
+          feedbackTag = `
+            <span class="ml-auto shrink-0 inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-lg">
+              ✓ Đáp án đúng
+            </span>
+          `;
+          isDisabled = true;
+        } else if (hasClickedThisOption && !isCorrectOption) {
+          // Người dùng đã bấm phương án này và nó SAI -> Tô màu Đỏ, khóa riêng nút này để chọn nút khác
+          btnStyle = `bg-rose-50/90 border-rose-400 text-rose-950 opacity-85 cursor-not-allowed ${shouldShake ? 'animate-shake' : ''}`;
+          circleStyle = 'bg-rose-500 text-white border-rose-600';
+          feedbackTag = `
+            <span class="ml-auto shrink-0 inline-flex items-center gap-1 text-xs font-bold text-rose-700 bg-rose-100 px-2.5 py-1 rounded-lg">
+              ✕ Sai - Chọn lại nhé
+            </span>
+          `;
+          isDisabled = true;
+        } else if (solved || isQuizFinished) {
+          // Nếu câu hỏi đã được giải xong (hoặc đã bấm Nộp bài)
+          if (isQuizFinished && isCorrectOption) {
+            // Hiển thị đáp án đúng nếu người dùng nộp bài sớm
+            btnStyle = 'bg-emerald-50/90 border-emerald-500 text-emerald-950 ring-2 ring-emerald-500/20 cursor-default';
+            circleStyle = 'bg-emerald-500 text-white border-emerald-600';
+            feedbackTag = `
+              <span class="ml-auto shrink-0 inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-lg">
+                ✓ Đáp án đúng
+              </span>
+            `;
+          } else {
+            // Làm mờ các phương án chưa chọn còn lại sau khi đã tìm được đáp án đúng
+            btnStyle = 'bg-slate-50/60 border-slate-200 text-slate-400 opacity-65 cursor-default';
+            circleStyle = 'bg-slate-100 text-slate-400 border-slate-200';
+          }
+          isDisabled = true;
+        }
+
+        return `
+          <button
+            type="button"
+            onclick="selectOption(${qIndex}, ${optIdx})"
+            ${isDisabled ? 'disabled' : ''}
+            class="group w-full text-left p-4 rounded-2xl border-2 transition-all duration-200 flex items-center gap-3.5 ${btnStyle}"
+          >
+            <span class="w-9 h-9 rounded-xl font-bold text-sm flex items-center justify-center shrink-0 transition-colors ${circleStyle}">
+              ${label}
+            </span>
+            <span class="text-sm sm:text-base font-medium leading-relaxed flex-1">
+              ${optText}
+            </span>
+            ${feedbackTag}
+          </button>
+        `;
+      }).join('');
+
+      // Khung phản hồi bên dưới câu hỏi:
+      // - Nếu đang chọn sai (chưa tìm ra câu đúng): Hiện gợi ý khích lệ chọn tiếp
+      // - Nếu đã chọn đúng (hoặc đã nộp bài): Hiện toàn bộ Giải thích chi tiết
+      let feedbackBoxHtml = '';
+
+      if (!solved && !isQuizFinished && wrongAttemptsCount > 0) {
+        const lastWrongOpt = attempts[attempts.length - 1];
+        feedbackBoxHtml = `
+          <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50/90 p-3.5 sm:p-4 text-amber-900 flex items-center justify-between gap-3 animate-explanation">
+            <div class="flex items-center gap-2.5 text-sm font-medium">
+              <span class="text-lg">🤔</span>
+              <span>Phương án <strong>${optionLabels[lastWrongOpt]}</strong> chưa chính xác. Bạn hãy thử chọn một đáp án khác còn lại nhé!</span>
+            </div>
+            <button
+              type="button"
+              onclick="retrySingleQuestion(${qIndex})"
+              class="shrink-0 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-white hover:bg-amber-100 text-amber-800 border border-amber-300 transition"
+            >
+              Đặt lại câu
+            </button>
+          </div>
+        `;
+      } else if (solved || isQuizFinished) {
+        const bannerTitle = solved
+          ? (wrongAttemptsCount === 0
+              ? `🎉 Tuyệt vời! Bạn đã chọn đúng đáp án ${optionLabels[q.correct]} ngay lần đầu tiên.`
+              : `✅ Chính xác! Bạn đã tìm ra đáp án đúng là ${optionLabels[q.correct]}.`)
+          : `💡 Đáp án đúng của câu này là ${optionLabels[q.correct]}.`;
+
+        feedbackBoxHtml = `
+          <div class="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50/85 p-4 sm:p-5 text-emerald-950 animate-explanation">
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-emerald-200/80">
+              <p class="font-bold text-sm sm:text-base text-emerald-900">${bannerTitle}</p>
+              <button
+                type="button"
+                onclick="retrySingleQuestion(${qIndex})"
+                class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300 transition shadow-sm"
+              >
+                Làm lại câu này
+              </button>
+            </div>
+            <div class="text-sm sm:text-base text-slate-700 leading-relaxed">
+              <strong class="text-indigo-900">Giải thích:</strong> ${q.explanation}
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <article id="question-card-${qIndex}" class="bg-white rounded-3xl p-5 sm:p-7 shadow-md shadow-indigo-950/5 border border-indigo-100/80 transition-all">
+          <!-- Đầu thẻ câu hỏi -->
+          <div class="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+              <span class="px-3 py-1 rounded-xl bg-indigo-600 text-white font-bold text-xs uppercase tracking-wide shadow-sm">
+                Câu ${q.id} / ${quizData.length}
+              </span>
+            </div>
+            ${statusBadge}
+          </div>
+
+          <!-- Nội dung câu hỏi -->
+          <h3 class="text-base sm:text-lg font-semibold text-slate-900 leading-relaxed mb-5">
+            ${q.question}
+          </h3>
+
+          <!-- Danh sách nút đáp án A, B, C, D -->
+          <div class="space-y-3">
+            ${optionsHtml}
+          </div>
+
+          <!-- Khung gợi ý chọn lại hoặc Giải thích chi tiết -->
+          ${feedbackBoxHtml}
+        </article>
+      `;
+    }
+
+    // Render giao diện chính
+    function renderQuiz() {
+      updateHeaderAndNav();
+      const container = document.getElementById('questions-container');
+
+      if (viewMode === 'single') {
+        container.innerHTML = renderQuestionCard(currentQuestionIndex);
+      } else {
+        container.innerHTML = quizData.map((_, idx) => renderQuestionCard(idx)).join('');
+      }
+    }
+
+    // Xử lý khi người dùng bấm chọn 1 đáp án
+    function selectOption(qIndex, optIndex) {
+      // Nếu câu này đã giải đúng rồi, hoặc đáp án này đã bấm rồi thì bỏ qua
+      if (isQuestionSolved(qIndex) || isQuizFinished || attemptHistory[qIndex].includes(optIndex)) {
+        return;
+      }
+
+      attemptHistory[qIndex].push(optIndex);
+      const isCorrect = (optIndex === quizData[qIndex].correct);
+
+      if (isCorrect) {
+        lastWrongClicked = { qIndex: null, optIndex: null };
+        // Bắn pháo giấy khích lệ khi chọn đúng
+        if (typeof confetti === 'function') {
+          confetti({
+            particleCount: 40,
+            spread: 60,
+            origin: { y: 0.75 }
+          });
+        }
+      } else {
+        // Ghi nhận nút vừa bấm sai để tạo hiệu ứng rung nhẹ
+        lastWrongClicked = { qIndex, optIndex };
+      }
+
+      renderQuiz();
+
+      // Kiểm tra nếu cả 6 câu đều đã được giải đúng thì tự động hiện bảng tổng kết
+      const allSolved = quizData.every((_, idx) => isQuestionSolved(idx));
+      if (allSolved && !isQuizFinished) {
+        setTimeout(() => {
+          submitQuiz(false);
+        }, 550);
+      }
+    }
+
+    // Đặt lại 1 câu hỏi cụ thể để thử lại từ đầu
+    function retrySingleQuestion(qIndex) {
+      attemptHistory[qIndex] = [];
+      lastWrongClicked = { qIndex: null, optIndex: null };
+      isQuizFinished = false;
+      document.getElementById('result-banner').classList.add('hidden');
+      renderQuiz();
+    }
+
+    // Điều hướng câu hỏi
+    function prevQuestion() {
+      if (currentQuestionIndex > 0) {
+        currentQuestionIndex--;
+        lastWrongClicked = { qIndex: null, optIndex: null };
+        renderQuiz();
+      }
+    }
+
+    function nextQuestion() {
+      if (currentQuestionIndex < quizData.length - 1) {
+        currentQuestionIndex++;
+        lastWrongClicked = { qIndex: null, optIndex: null };
+        renderQuiz();
+      }
+    }
+
+    function jumpToQuestion(index) {
+      currentQuestionIndex = index;
+      lastWrongClicked = { qIndex: null, optIndex: null };
+      if (viewMode === 'single') {
+        renderQuiz();
+      } else {
+        const el = document.getElementById(`question-card-${index}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    // Chuyển đổi chế độ Từng câu / Tất cả
+    function setViewMode(mode) {
+      viewMode = mode;
+      lastWrongClicked = { qIndex: null, optIndex: null };
+      const singleBtn = document.getElementById('mode-single-btn');
+      const allBtn = document.getElementById('mode-all-btn');
+      const singleNavControls = document.getElementById('single-nav-controls');
+
+      if (mode === 'single') {
+        singleBtn.className = 'px-2.5 py-1 rounded-lg transition-all bg-indigo-600 text-white shadow';
+        allBtn.className = 'px-2.5 py-1 rounded-lg transition-all text-slate-300 hover:text-white';
+        singleNavControls.classList.remove('hidden');
+      } else {
+        allBtn.className = 'px-2.5 py-1 rounded-lg transition-all bg-indigo-600 text-white shadow';
+        singleBtn.className = 'px-2.5 py-1 rounded-lg transition-all text-slate-300 hover:text-white';
+        singleNavControls.classList.add('hidden');
+      }
+
+      renderQuiz();
+    }
+
+    // Nộp bài và hiển thị tổng kết
+    function submitQuiz(switchToAllView = true) {
+      isQuizFinished = true;
+      lastWrongClicked = { qIndex: null, optIndex: null };
+
+      const solvedCount = quizData.reduce((acc, _, idx) => acc + (isQuestionSolved(idx) ? 1 : 0), 0);
+      const firstTryCount = quizData.reduce((acc, q, idx) => {
+        const attempts = attemptHistory[idx];
+        return acc + (attempts.length === 1 && attempts[0] === q.correct ? 1 : 0);
+      }, 0);
+      const totalWrongAttempts = quizData.reduce((acc, q, idx) => {
+        return acc + attemptHistory[idx].filter(opt => opt !== q.correct).length;
+      }, 0);
+
+      document.getElementById('final-score-text').textContent = `${solvedCount}/${quizData.length}`;
+      document.getElementById('stat-first-try').textContent = `${firstTryCount}/${quizData.length}`;
+      document.getElementById('stat-wrong-attempts').textContent = totalWrongAttempts;
+      document.getElementById('stat-time').textContent = formatTime(secondsElapsed);
+
+      const msgEl = document.getElementById('final-message');
+      if (firstTryCount === quizData.length) {
+        msgEl.textContent = 'Xuất sắc! Bạn đã trả lời đúng cả 6/6 câu ngay từ lần chọn đầu tiên!';
+      } else if (solvedCount === quizData.length) {
+        msgEl.textContent = `Chúc mừng bạn đã hoàn thành tất cả 6/6 câu hỏi (đúng ngay lần đầu ${firstTryCount}/6 câu)!`;
+      } else {
+        msgEl.textContent = 'Dưới đây là đáp án và giải thích chi tiết cho toàn bộ các câu hỏi.';
+      }
+
+      const banner = document.getElementById('result-banner');
+      banner.classList.remove('hidden');
+
+      if (switchToAllView) {
+        setViewMode('all');
+        banner.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        renderQuiz();
+      }
+
+      // Bắn pháo giấy chúc mừng
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      }
+    }
+
+    // Làm lại từ đầu
+    function resetQuiz() {
+      attemptHistory = quizData.map(() => []);
+      lastWrongClicked = { qIndex: null, optIndex: null };
+      currentQuestionIndex = 0;
+      isQuizFinished = false;
+      document.getElementById('result-banner').classList.add('hidden');
+      startTimer();
+      renderQuiz();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Khởi chạy khi tải trang
+    window.addEventListener('DOMContentLoaded', () => {
+      startTimer();
+      renderQuiz();
+    });
+  </script>
+</body>
+</html>
